@@ -35,14 +35,37 @@ window.addEventListener('load', function() {
     );
 
     function success(stream) {
+        var video = document.getElementById('video');
+        var detection_canvas = document.getElementById('detection_canvas');
         var canvas = document.getElementById('canvas');
+
+        var width = detection_canvas.width = canvas.width = video.width;
+        var heght = detection_canvas.height = canvas.height = video.height;
+
+        var detection_context = detection_canvas.getContext('2d');
         var context = canvas.getContext('2d');
         var videoUrl = createObjectURL(stream);
-        var video = document.getElementById('video');
         video.src = videoUrl;
         video.autoplay = true;
+
         requestAnimationFrame(function render() {
+            detection_context.drawImage(video, 0, 0, canvas.width, canvas.height);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            var comp = ccv.detect_objects({
+                canvas :ccv.grayscale(detection_canvas),
+                cascade : cascade,
+                interval : 5,
+                min_neighbors : 1 });
+            var i, scale = 1;
+            detection_context.lineWidth = 2;
+            detection_context.strokeStyle = 'rgba(230,87,0,0.8)';
+            /* draw detected area */
+            for (i = 0; i < comp.length; i++) {
+                detection_context.beginPath();
+                detection_context.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
+                        (comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
+                detection_context.stroke();
+            }
             requestAnimationFrame(render);
         });
     }
